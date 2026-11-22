@@ -1,0 +1,1344 @@
+
+1. **Express.js** – creates the backend server and API routes.
+2. **CORS** – allows your frontend to communicate with the backend.
+3. **OpenAI SDK** – sends customer messages to an OpenAI model and receives responses.
+4. **Conversation history** – remembers previous messages so the AI can understand context.
+
+The application is called **Tomato**, a food-ordering app. Its chatbot handles food ordering, refunds, order tracking, and company policies.
+
+# **1. Importing packages**
+
+```
+import cors from "cors";
+import express from "express";
+import OpenAI from "openai";
+```
+
+Let's understand each import.
+
+**Line 1:**
+
+```
+import cors from "cors";
+```
+
+- Imports the CORS package.
+- CORS stands for Cross-Origin Resource Sharing.
+- It allows a frontend running on one origin to make requests to a backend running on another origin.
+
+Example:
+
+Your frontend:\
+`http://localhost:5173`
+
+Your backend:\
+`http://localhost:3000`
+
+These are different origins because their ports are different.
+
+Without appropriate CORS configuration, the browser may block frontend requests to the backend.
+
+**Line 2:**
+
+```
+import express from "express";
+```
+
+Express is a Node.js framework used to build web servers and APIs.
+
+Instead of manually handling HTTP requests, Express gives us convenient methods such as:
+
+- `app.get()` – handle GET requests.
+- `app.post()` – handle POST requests.
+- `app.delete()` – handle DELETE requests.
+- `app.use()` – register middleware.
+
+**Line 3:**
+
+```
+import OpenAI from "openai";
+```
+
+Imports the official OpenAI JavaScript SDK.
+
+We use this SDK to communicate with OpenAI models.
+
+For example, we can send:
+
+```
+"What is the status of my order?"
+```
+
+And receive an AI-generated response.
+
+# **2. SYSTEM_PROMPT**
+
+```
+const SYSTEM_PROMPT = `You are a customer-support executive for our
+Food ordering app named Tomato.
+...
+`;
+```
+
+This is one of the most important parts of an AI application.
+
+First, understand what a **system prompt** means.
+
+A system prompt provides instructions to the AI about:
+
+- Its identity.
+- Its responsibilities.
+- Its behavior.
+- What it should and shouldn't answer.
+- How it should communicate.
+
+Here, we are instructing the model to behave like a customer-support executive.
+
+Let's break down the instructions.
+
+```
+You are a customer-support executive for our
+Food ordering app named Tomato.
+```
+
+We assign the AI a role.
+
+It should behave like a customer-support executive, not a general-purpose chatbot.
+
+```
+Your job is to identify the customer's main
+problem and urgency.
+```
+
+We tell the AI what it needs to understand from the customer's message.
+
+For example:
+
+Customer:\
+"My order hasn't arrived, and I've been waiting for two hours."
+
+The AI should identify:
+
+- Main problem: Delayed order.
+- Urgency: High.
+
+```
+Use professional language.
+```
+
+Defines the communication style.
+
+```
+If user has an issue,
+use words like I understand your frustration,
+I am really sorry for your trouble etc.
+```
+
+This encourages empathetic responses.
+
+```
+Do not answer any other question which is not
+related to Ordering Food query, refund query,
+order tracking status query or company policy query.
+```
+
+This defines the chatbot's scope.
+
+For example:
+
+| Customer question                 | Should AI answer? |
+| --------------------------------- | ----------------- |
+| Where is my order?                | Yes               |
+| How can I get a refund?           | Yes               |
+| What is your cancellation policy? | Yes               |
+| Write a Python program            | No                |
+| Explain quantum physics           | No                |
+
+**Important:** A system prompt guides the model, but it isn't a strict security mechanism. For a production chatbot, you should also validate requests and enforce business rules in your backend.
+
+# **3. Creating the Express application**
+
+```
+const app = express();
+```
+
+Here, we create an Express application.
+
+Think of `app` as the main object that manages your backend.
+
+Through this object, we define routes, middleware, and error handlers.
+
+For example:
+
+```
+app.get("/users", (req, res) => {
+    res.send("All users");
+});
+```
+
+Whenever someone sends a GET request to `/users`, this route executes.
+
+# **4. Creating the OpenAI client**
+
+```
+const client = new OpenAI();
+```
+
+This creates an instance of the OpenAI client.
+
+Think of `client` as the object responsible for communicating with OpenAI's API.
+
+It uses your API key, which is normally read from:
+
+```
+OPENAI_API_KEY=your_api_key
+```
+
+The SDK automatically reads this environment variable.
+
+You can then use:
+
+```
+client.responses.create()
+```
+
+to send requests to the model.
+
+# **5. Selecting the model**
+
+```
+const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+```
+
+Let's understand this carefully.
+
+**First:**
+
+```
+process.env.OPENAI_MODEL
+```
+
+`process.env` contains environment variables available to your Node.js application.
+
+For example, your `.env` file might contain:
+
+```
+OPENAI_MODEL=gpt-4o-mini
+```
+
+**Second:**
+
+```
+??
+```
+
+This is called the nullish coalescing operator.
+
+It means:
+
+If the value on the left is `null` or `undefined`, use the value on the right.
+
+So:
+
+```
+const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+```
+
+Means:
+
+- If `OPENAI_MODEL` exists, use that model.
+- Otherwise, use `gpt-4o-mini`.
+
+Why do we do this?
+
+It allows us to change the model through environment variables without modifying the actual source code.
+
+# **6. Conversation history**
+
+```
+const history = [];
+```
+
+This is an array that stores the conversation between the customer and the AI.
+
+Why do we need it?
+
+Imagine this conversation:
+
+Customer: Where is my order?
+
+AI: Could you please provide your order ID?
+
+Customer: ORD123.
+
+Now, when the customer sends `ORD123`, the AI needs to understand that this is the order ID it requested.
+
+If we don't maintain conversation history, the AI might not understand the context.
+
+Our history array will look like this:
+
+```
+[
+    {
+        role: "user",
+        content: "Where is my order?"
+    },
+    {
+        role: "assistant",
+        content: "Could you please provide your order ID?"
+    },
+    {
+        role: "user",
+        content: "ORD123"
+    }
+]
+```
+
+There are two important roles:
+
+| Role      | Meaning                      |
+| --------- | ---------------------------- |
+| user      | Message sent by the customer |
+| assistant | Response generated by the AI |
+
+Notice that `history` is declared outside the API route, so it survives across requests while this Node.js process remains running.
+
+**Important limitation:** This is a single global history array. That means all customers share the same conversation history! In a real application, you must maintain separate histories for each user or session, preferably using a database or Redis.
+
+# **7. Understanding&#x20;**`historyQueue`**&#x20;and&#x20;**`useHistory()`
+
+This is slightly advanced JavaScript, so let's understand the problem it solves first.
+
+```
+let historyQueue = Promise.resolve();
+```
+
+What is a Promise?
+
+A Promise represents the eventual completion or failure of an asynchronous operation.
+
+It has three states:
+
+- Pending
+- Fulfilled
+- Rejected
+
+Here:
+
+```
+Promise.resolve()
+```
+
+creates an already fulfilled Promise.
+
+We use it as the starting point of a queue.
+
+**But why do we need a queue?**
+
+Imagine two customers send messages almost simultaneously:
+
+- Request A: "Where is my order?"
+- Request B: "I want a refund."
+
+Both requests try to modify the `history` array and call the AI.
+
+If these operations overlap, the conversation history might become inconsistent.
+
+We want to execute history operations one after another.
+
+That's what this queue helps us achieve.
+
+Now let's understand the function.
+
+```
+function useHistory(operation) {
+```
+
+We define a function called `useHistory`.
+
+It accepts one argument:
+
+`operation`
+
+This argument is a function that contains the work we want to perform on conversation history.
+
+For example:
+
+```
+useHistory(async () => {
+    history.push({ role: "user", content: "Hello" });
+});
+```
+
+Here, the arrow function is passed as the operation.
+
+**Next line:**
+
+```
+const result = historyQueue.then(operation);
+```
+
+This is the most important line.
+
+`.then()` executes the supplied function after the previous Promise has successfully completed.
+
+Initially:
+
+```
+historyQueue = Promise.resolve();
+```
+
+So the first operation executes immediately (asynchronously through the Promise chain).
+
+Suppose operation A is running.
+
+Then operation B arrives.
+
+B will wait for A to finish before executing.
+
+Visualize it:
+
+**History operation queue**
+
+**Operation A**
+
+Process customer message A
+
+Wait until A completes
+
+**Operation B**
+
+Process customer message B
+
+Then continue
+
+**Operation C**
+
+Process customer message C
+
+**Next line:**
+
+```
+historyQueue = result.catch(() => {});
+```
+
+Why do we need this?
+
+Suppose operation A fails.
+
+If we don't handle the rejection, the next operation chained using `.then()` may never execute.
+
+Here:
+
+```
+result.catch(() => {});
+```
+
+If the operation fails, we catch the error and return an empty result.
+
+Then we assign this recovered Promise to `historyQueue`.
+
+This ensures that the next operation can still execute.
+
+**Next line:**
+
+```
+return result;
+```
+
+We return the original Promise to the caller.
+
+Why the original Promise instead of `historyQueue`?
+
+Because the caller needs to know whether its own operation succeeded or failed.
+
+Notice the difference:
+
+- `historyQueue` is the recovered Promise used to keep the queue running.
+- `result` is the original Promise that preserves the actual operation's success or failure.
+
+This is a useful JavaScript pattern for serializing asynchronous operations.
+
+# **8. Middleware**
+
+```
+app.use(cors());
+```
+
+What is middleware?
+
+Middleware is a function that executes during the request-response cycle.
+
+Whenever a request reaches your Express application, registered middleware can process it before the request reaches your route.
+
+Here:
+
+```
+cors()
+```
+
+creates CORS middleware.
+
+```
+app.use()
+```
+
+registers that middleware with Express.
+
+So, incoming requests pass through CORS middleware.
+
+Note: `cors()` uses default settings, which allow requests from any origin. For production, restrict allowed origins to your frontend domain.
+
+**Next line:**
+
+```
+app.use(express.text({ type: "*/*" }));
+```
+
+This is very important.
+
+Normally, when a frontend sends data to an Express backend, Express needs to understand the incoming request body.
+
+Here we are using:
+
+```
+express.text()
+```
+
+This is a built-in Express body parser that reads the request body as plain text.
+
+For example, suppose your frontend sends:
+
+```
+fetch("/api/chat", {
+    method: "POST",
+    body: "Where is my order?"
+});
+```
+
+Express receives the request body as a string.
+
+```
+req.body
+```
+
+will contain:
+
+```
+Where is my order?
+```
+
+Now, what does this mean?
+
+```
+type: "*/*"
+```
+
+It tells Express to parse request bodies regardless of their Content-Type.
+
+Without this configuration, `express.text()` normally only parses certain text content types.
+
+# **9. Creating the POST API**
+
+```
+app.post("/api/chat", async (req, res, next) => {
+```
+
+Let's break this into four parts.
+
+**Part 1:**
+
+```
+app.post()
+```
+
+Defines an API endpoint that handles HTTP POST requests.
+
+**Part 2:**
+
+```
+"/api/chat"
+```
+
+This is the endpoint URL.
+
+For example, if your backend runs on port 3000:
+
+```
+http://localhost:3000/api/chat
+```
+
+**Part 3:**
+
+```
+async (req, res, next) => {}
+```
+
+This is an asynchronous callback function.
+
+It executes whenever a POST request reaches `/api/chat`.
+
+It receives three arguments:
+
+| Argument | Meaning                                                |
+| -------- | ------------------------------------------------------ |
+| `req`    | Contains information about the incoming request        |
+| `res`    | Used to send a response to the client                  |
+| `next`   | Passes control to the next middleware or error handler |
+
+Why `async`?
+
+Because we will communicate with OpenAI, which takes time.
+
+We use `await` to wait for that asynchronous operation.
+
+# **10. Validating the request body**
+
+```
+if (typeof req.body !== "string") {
+```
+
+Remember:
+
+We configured:
+
+```
+express.text({ type: "*/*" })
+```
+
+So we expect the request body to be a string.
+
+Here:
+
+```
+typeof req.body
+```
+
+checks the data type of the request body.
+
+If it isn't a string, we enter the `if` block.
+
+**Next line:**
+
+```
+res.status(400).type("text/plain").send("Request body must be text");
+```
+
+Let's understand the chaining.
+
+- `res.status(400)` sets the HTTP status code to 400 (Bad Request).
+- `.type("text/plain")` sets the response Content-Type to plain text.
+- `.send(...)` sends the response back to the frontend.
+
+For example, if the frontend sends invalid data, the backend responds:
+
+```
+Status: 400 Bad Request
+
+Request body must be text
+```
+
+**Next line:**
+
+```
+return;
+```
+
+Why return?
+
+Because we don't want the remaining code to execute after sending an error response.
+
+It exits the current callback.
+
+# **11. The try-catch block**
+
+```
+try {
+```
+
+We are about to perform operations that might fail.
+
+For example:
+
+- OpenAI API might be unavailable.
+- API key might be invalid.
+- Network connection might fail.
+- The API request might exceed its timeout.
+
+We use `try-catch` to handle these errors.
+
+# **12. The main AI operation**
+
+```
+const answer = await useHistory(async () => {
+```
+
+This is where all the important chatbot logic begins.
+
+Let's break it down.
+
+`useHistory()` ensures that the operation waits for previous history operations to finish.
+
+Inside it, we pass an asynchronous arrow function.
+
+And:
+
+```
+await
+```
+
+means we wait until the entire operation completes and then store its returned value in `answer`.
+
+Let's now go inside the function.
+
+**Step 1: Add the customer's message**
+
+```
+history.push({ role: "user", content: req.body });
+```
+
+Remember our history array?
+
+Initially:
+
+```
+history = [];
+```
+
+Suppose the customer sends:
+
+```
+Where is my order?
+```
+
+Then:
+
+```
+req.body = "Where is my order?"
+```
+
+This line adds a new object to the history array.
+
+The array becomes:
+
+```
+[
+    {
+        role: "user",
+        content: "Where is my order?"
+    }
+]
+```
+
+`push()` adds an element at the end of an array.
+
+**Step 2: Send the conversation to OpenAI**
+
+```
+const apiResponse = await client.responses.create({
+```
+
+This is the actual OpenAI API call.
+
+We are using the Responses API.
+
+The method:
+
+```
+client.responses.create()
+```
+
+creates a response from the selected AI model.
+
+We pass an object containing the model configuration and conversation data.
+
+Let's understand each property.
+
+**Property 1:**
+
+```
+model,
+```
+
+This is the model we selected earlier.
+
+Remember:
+
+```
+const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+```
+
+So the API knows which model should generate the response.
+
+**Property 2:**
+
+```
+instructions: SYSTEM_PROMPT,
+```
+
+This passes our system instructions to OpenAI.
+
+The model now knows:
+
+- It is Tomato's customer-support executive.
+- It should answer food-ordering-related questions.
+- It should use professional language.
+- It should stay within its assigned scope.
+
+**Property 3:**
+
+```
+input: history,
+```
+
+This is extremely important.
+
+We send the entire conversation history to the model.
+
+For example:
+
+```
+[
+    {
+        role: "user",
+        content: "Where is my order?"
+    },
+    {
+        role: "assistant",
+        content: "Please provide your order ID."
+    },
+    {
+        role: "user",
+        content: "ORD123"
+    }
+]
+```
+
+Why the entire history?
+
+Because the AI needs context to understand the latest message.
+
+Without history, it might receive only:
+
+```
+ORD123
+```
+
+And it wouldn't know what the customer was talking about.
+
+**Property 4:**
+
+```
+store: false,
+```
+
+This tells the Responses API not to store this response as a retrievable response object.
+
+It does not mean that your application won't maintain conversation history.
+
+Remember, we are separately storing messages in our JavaScript `history` array.
+
+Also, this setting alone should not be treated as a guarantee that no data is retained anywhere; API data-retention policies are separate.
+
+**Step 3: Extract the AI's response**
+
+```
+});
+```
+
+The API call finishes, and its result is stored in:
+
+```
+apiResponse
+```
+
+The complete API response contains more information than just the text.
+
+We only need the generated text.
+
+```
+apiResponse.output_text
+```
+
+This gives us the text generated by the model.
+
+**Step 4: Store the AI response in history**
+
+```
+history.push({ role: "assistant", content: apiResponse.output_text });
+```
+
+Why?
+
+Because we also need to remember what the AI replied.
+
+Suppose the AI responds:
+
+```
+Could you please provide your order ID?
+```
+
+Now the history becomes:
+
+```
+[
+    {
+        role: "user",
+        content: "Where is my order?"
+    },
+    {
+        role: "assistant",
+        content: "Could you please provide your order ID?"
+    }
+]
+```
+
+Now, if the customer sends another message, the AI will have the previous conversation.
+
+**Step 5: Return the answer**
+
+```
+return apiResponse.output_text;
+```
+
+We return the generated text from the `useHistory()` callback.
+
+Remember:
+
+```
+const answer = await useHistory(...)
+```
+
+So the returned text gets assigned to `answer`.
+
+At this point:
+
+```
+answer = "Could you please provide your order ID?"
+```
+
+# **13. Sending the answer to the frontend**
+
+```
+res.type("text/plain").send(answer);
+```
+
+Now our AI response is ready.
+
+We send it back to the frontend.
+
+- `.type("text/plain")` sets the response type.
+- `.send(answer)` sends the actual AI-generated answer.
+
+The frontend receives:
+
+```
+Could you please provide your order ID?
+```
+
+The complete flow is:
+
+**Customer**
+
+"Where is my order?"
+
+**Frontend sends POST request**
+
+/api/chat
+
+**Express backend**
+
+Validates request and updates history
+
+**OpenAI API**
+
+Receives system prompt + conversation history
+
+**AI generates an answer**
+
+Answer is added to history
+
+**Frontend receives the answer**
+
+# **14. Catching errors**
+
+```
+} catch (error) {
+    next(error);
+}
+```
+
+Remember our `try` block?
+
+If something goes wrong inside it, JavaScript jumps to the `catch` block.
+
+For example:
+
+- OpenAI API returns an error.
+- Internet connection fails.
+- API authentication fails.
+
+Here:
+
+```
+next(error);
+```
+
+passes the error to Express's error-handling middleware.
+
+We will see that middleware shortly.
+
+Why not directly send an error response here?
+
+Because we have a centralized error handler at the bottom of our application. We can handle errors in one place instead of writing error responses in every route.
+
+# **15. Closing the POST route**
+
+```
+});
+```
+
+This closes the callback function and the `app.post()` route definition.
+
+Our POST API is now complete.
+
+# **16. Creating the DELETE API**
+
+```
+app.delete("/api", async (_req, res, next) => {
+```
+
+Here, we define another API endpoint.
+
+This time, it handles DELETE requests.
+
+Endpoint:
+
+```
+DELETE /api
+```
+
+Its purpose is to clear the conversation history.
+
+Notice:
+
+```
+_req
+```
+
+Why is there an underscore?
+
+It indicates that we don't intend to use this parameter.
+
+We don't need any information from the incoming request, so we use `_req` instead of `req`.
+
+We still need `res` to send a response and `next` to forward errors.
+
+**Next:**
+
+```
+try {
+```
+
+Again, we use try-catch because our operation might fail.
+
+**Next:**
+
+```
+await useHistory(async () => {
+    history.length = 0;
+});
+```
+
+Let's understand this carefully.
+
+We already know that:
+
+```
+useHistory()
+```
+
+serializes history operations.
+
+So we use the same queue when deleting the history.
+
+Why?
+
+Imagine a customer sends a message while another request is clearing the history.
+
+We don't want these operations to interfere with each other.
+
+Inside the callback:
+
+```
+history.length = 0;
+```
+
+This removes every element from the array.
+
+For example:
+
+Before:
+
+```
+history = [
+    { role: "user", content: "Hello" },
+    { role: "assistant", content: "Hi!" }
+];
+```
+
+After:
+
+```
+history = [];
+```
+
+Why not write:
+
+```
+history = [];
+```
+
+Because `history` was declared using `const`.
+
+We cannot reassign it to another array.
+
+But we can modify the existing array by setting its length to zero.
+
+**Next:**
+
+```
+res.status(200).send();
+```
+
+If everything succeeds, we send HTTP status code 200.
+
+This means the request was successful.
+
+We don't send any response body because there is nothing else to return.
+
+**Next:**
+
+```
+} catch (error) {
+    next(error);
+}
+```
+
+If clearing the history fails, we pass the error to Express's error handler.
+
+Finally:
+
+```
+});
+```
+
+Closes the DELETE route.
+
+# **17. Global error-handling middleware**
+
+```
+app.use((error, _req, res, _next) => {
+```
+
+This is different from ordinary middleware.
+
+Express recognizes this as an error-handling middleware because it has four parameters.
+
+The parameters are:
+
+| Parameter | Meaning                  |
+| --------- | ------------------------ |
+| `error`   | The error that occurred  |
+| `_req`    | Incoming request         |
+| `res`     | Response object          |
+| `_next`   | Next middleware function |
+
+Remember this line from our POST route?
+
+```
+next(error);
+```
+
+That error eventually reaches this middleware.
+
+**Next:**
+
+```
+console.error(error);
+```
+
+Prints the error in the backend terminal.
+
+Useful for debugging.
+
+For example, if the OpenAI API key is invalid, you can inspect the error in your server logs.
+
+**Next:**
+
+```
+res.status(500).type("text/plain").send("Unable to process the chat request");
+```
+
+Sends an error response to the frontend.
+
+Let's break it down:
+
+- `500` means Internal Server Error.
+- `text/plain` means the response is plain text.
+- `send()` sends the error message.
+
+We don't expose the actual internal error to the customer.
+
+This is good practice because internal errors may contain implementation details.
+
+Finally:
+
+```
+});
+```
+
+Closes the error-handling middleware.
+
+# **18. Exporting the application**
+
+```
+export default app;
+```
+
+This exports our Express application.
+
+But notice something important:
+
+We haven't written:
+
+```
+app.listen(3000);
+```
+
+Why?
+
+Because this file only defines and exports the Express application.
+
+Another file can import it and start the server.
+
+For example:
+
+```
+import app from "./app.js";
+
+app.listen(3000, () => {
+    console.log("Server running on port 3000");
+});
+```
+
+This separates application configuration from server startup.
+
+# **19. Let's understand the complete architecture**
+
+Now that we've covered every line, let's connect everything.
+
+[Introduction to Express.js. What is Express.js ? | by Yuvraj Kevit | Medium](https://images.openai.com/static-rsc-4/0Y48EEI5zbCLF_BcpnnwJ2QUCMDkfC2W7F3IEgZA1lj6LIyt8M0-MvxH92ZQ7-MGPz0WlcuyddenOkc1CRgymqov8UI7LTLvI7EOwLVNIxnpZXRni9dF52ceYXHUz5_DlO0aMXqceR_TuKjgE8Wg9YuXpntCNYZfWe-PdGX96m0?purpose=inline)
+
+[yuvrajscorpio.medium.com](https://yuvrajscorpio.medium.com/introduction-to-express-js-ffd05bf7f83c?utm_source=chatgpt.com)
+
+Your application works like this:
+
+1. Customer sends a message from the frontend.
+2. Frontend sends a POST request to `/api/chat`.
+3. Express receives the request.
+4. Middleware processes the request.
+5. The backend validates the message.
+6. `useHistory()` ensures operations execute sequentially.
+7. Customer message gets added to history.
+8. OpenAI receives the system prompt and conversation history.
+9. OpenAI generates a response.
+10. AI response gets added to history.
+11. Backend sends the response to the frontend.
+
+# **20. Important things to improve in this project**
+
+Your code is a good starting point for understanding an AI chatbot backend. However, there are some important limitations.
+
+| Current implementation               | What you should eventually implement                 |
+| ------------------------------------ | ---------------------------------------------------- |
+| One global `history` array           | Separate conversation history for each user          |
+| History stored in RAM                | Redis or database persistence                        |
+| History grows indefinitely           | Limit history or use summarization                   |
+| CORS allows every origin             | Restrict allowed frontend origins                    |
+| System prompt controls chatbot scope | Add backend validation and business-rule enforcement |
+| No authentication                    | Authenticate users and identify their sessions       |
+
+**One particularly important issue:**
+
+Currently:
+
+```
+const history = [];
+```
+
+This means Customer A and Customer B share the same conversation!
+
+For example:
+
+Customer A: Where is my order?
+
+Customer B: I want a refund.
+
+Both messages enter the same array.
+
+This is a serious privacy and correctness issue. You should fix it before deploying the chatbot.
+
+Also, your queue serializes requests globally, meaning one customer's slow OpenAI request blocks another customer's conversation from being processed.
+
+# **21. Test your understanding**
+
+Before moving forward, try answering these questions. These concepts are important when you start building Agentic AI applications.
+
+**Knowledge check**
+
+0/5 answered
+
+**1. Why do we use \`input: history\` instead of sending only \`req.body\`?**
+
+To reduce API costs
+
+To provide conversation context to the AI
+
+To authenticate the customer
+
+**2. What does \`store: false\` do?**
+
+Deletes our JavaScript history array
+
+Prevents the Responses API from storing the response as a retrievable response object
+
+Stops the AI from generating a response
+
+**3. Why do we use \`historyQueue\`?**
+
+To serialize history operations
+
+To store messages permanently
+
+To connect Express to OpenAI
+
+**4. What happens when \`history.length = 0\` executes?**
+
+Only the last message is deleted
+
+The array is completely cleared
+
+The array becomes undefined
+
+**5. What is the problem with the current global history array?**
+
+It cannot store strings
+
+All customers share the same conversation
+
+It automatically deletes messages
+
+Submit answers
+
+My suggestion for your next step: understand how to replace this global array with **session-based conversation history using Redis**. That will take you from a basic AI chatbot to a much more realistic backend architecture.
