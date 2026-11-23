@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravelMate — Your AI Travel Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">✦</span><span>TravelMate</span></div>
+      <div class="side-intro">
+        <p class="eyebrow">YOUR PERSONAL TRIP COMPANION</p>
+        <h1>Less planning.<br><em>More exploring.</em></h1>
+        <p class="muted">Tell me what kind of trip you want. I'll help shape the plan.</p>
+      </div>
+      <div class="suggestions">
+        <p class="eyebrow">TRY ASKING</p>
+        <button class="suggestion">Plan a 4-day Jaipur trip for two people.</button>
+        <button class="suggestion">Check the weather in Goa for this week.</button>
+        <button class="suggestion">Split my ₹30,000 budget for a 5-day trip.</button>
+        <button class="suggestion">Create a relaxed trip with food and culture.</button>
+      </div>
+      <div class="sidebar-foot">Built with Node.js + an AI tool-calling agent</div>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div><span class="status-dot"></span><span>TravelMate Agent</span></div>
+        <span class="topbar-note">Plan • Explore • Adjust</span>
+      </header>
+
+      <section class="chat-area" id="chatArea">
+        <div class="welcome" id="welcome">
+          <div class="welcome-icon">✈</div>
+          <p class="eyebrow">LET'S PLAN YOUR NEXT ADVENTURE</p>
+          <h2>Where would you<br>like to go?</h2>
+          <p class="muted">Share your destination, dates, budget, or even just an idea. We can figure out the rest together.</p>
+        </div>
+        <div class="messages" id="messages" aria-live="polite"></div>
+      </section>
+
+      <form class="composer" id="chatForm">
+        <textarea id="messageInput" rows="1" placeholder="Tell me about your dream trip..." required></textarea>
+        <button type="submit" id="sendButton" aria-label="Send message">↑</button>
+        <div class="composer-hint">TravelMate can plan and estimate. It will never book anything without your approval.</div>
+      </form>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
