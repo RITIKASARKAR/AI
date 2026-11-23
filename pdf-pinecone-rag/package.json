@@ -1,0 +1,10 @@
+{
+  "name": "pdf-pinecone-rag",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Node.js PDF chunking, OpenAI embeddings, and Pinecone semantic search",
+  "scripts": { "index": "node src/cli.js index", "search": "node src/cli.js search" },
+  "engines": { "node": ">=20" },
+  "dependencies": { "dotenv": "^16.4.7", "pdfjs-dist": "^4.10.38" }
+}

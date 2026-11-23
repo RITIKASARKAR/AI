@@ -1,0 +1,16 @@
+{
+  "name": "pdf-to-pinecone-rag-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ingest": "node src/cli.js ingest",
+    "search": "node src/cli.js search"
+  },
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "@pinecone-database/pinecone": "^6.1.2",
+    "dotenv": "^16.4.7",
+    "openai": "^5.12.2",
+    "pdf-parse": "^2.4.5"
+  }
+}
