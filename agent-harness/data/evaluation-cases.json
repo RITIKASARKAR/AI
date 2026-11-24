@@ -1,0 +1,35 @@
+[
+  {
+    "id": "read-existing-task",
+    "goal": "Check task 7 status",
+    "taskId": "7",
+    "approval": "approve",
+    "expectedStatus": "TODO",
+    "expectedStopReason": "completed"
+  },
+  {
+    "id": "complete-with-approval",
+    "goal": "Mark task 8 complete",
+    "taskId": "8",
+    "approval": "approve",
+    "expectedStatus": "DONE",
+    "expectedStopReason": "completed"
+  },
+  {
+    "id": "complete-denied",
+    "goal": "Mark task 9 complete",
+    "taskId": "9",
+    "approval": "deny",
+    "expectedStatus": "TODO",
+    "expectedStopReason": "completed"
+  },
+  {
+    "id": "transient-read-failure",
+    "goal": "Check task 10 status",
+    "taskId": "10",
+    "approval": "approve",
+    "failFirstRead": true,
+    "expectedStatus": "TODO",
+    "expectedStopReason": "completed"
+  }
+]

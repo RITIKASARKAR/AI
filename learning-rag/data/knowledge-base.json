@@ -1,0 +1,37 @@
+[
+  {
+    "id": "trial-policy",
+    "title": "Free trial",
+    "category": "billing",
+    "locale": "en",
+    "text": "## Free trial\nAcme Notes offers a 14-day free trial. A credit card is not required to start the trial. The trial ends 14 days after signup."
+  },
+  {
+    "id": "export-policy",
+    "title": "Exporting notes",
+    "category": "how-to",
+    "locale": "en",
+    "text": "## Exporting notes\nUsers can export notes as Markdown or PDF. Open Settings, choose Export, and select a format. If an export fails, the documented first step is to update the app and try again."
+  },
+  {
+    "id": "security-policy",
+    "title": "Security information",
+    "category": "security",
+    "locale": "en",
+    "text": "## Security information\nThe available product notes do not specify an encryption algorithm or encryption-at-rest design. Contact the security team for current security documentation."
+  },
+  {
+    "id": "sync-policy",
+    "title": "Syncing notes",
+    "category": "how-to",
+    "locale": "en",
+    "text": "## Syncing notes\nAcme Notes syncs changes when the device is online. The available notes do not specify a sync interval or offline conflict-resolution policy."
+  },
+  {
+    "id": "refund-policy",
+    "title": "Refunds",
+    "category": "billing",
+    "locale": "en",
+    "text": "## Refunds\nThe available product notes do not describe refund eligibility, amounts, or processing times. Contact support for account-specific billing help."
+  }
+]
